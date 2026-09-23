@@ -1,0 +1,1718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Batch Macros</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚖️</text></svg>">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root{
+    --bg:#f6f4ee;
+    --panel:#ffffff;
+    --ink:#26241f;
+    --ink-soft:#6b6656;
+    --line:#e2ddd0;
+    --accent:#3f6b4f;
+    --accent-dark:#2e5039;
+    --accent-soft:#e7efe9;
+    --warn:#a5501f;
+    --warn-soft:#f7e9e0;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  header{
+    padding:20px 18px 14px;
+    border-bottom:1px solid var(--line);
+    background:var(--panel);
+  }
+  header h1{
+    margin:0;
+    font-size:20px;
+    letter-spacing:-0.01em;
+  }
+  header p{
+    margin:4px 0 0;
+    color:var(--ink-soft);
+    font-size:13px;
+  }
+  nav{
+    display:flex;
+    overflow-x:auto;
+    background:var(--panel);
+    border-bottom:1px solid var(--line);
+    position:sticky;
+    top:0;
+    z-index:5;
+  }
+  nav button{
+    flex:1 0 auto;
+    border:none;
+    background:none;
+    padding:12px 14px;
+    font-size:14px;
+    color:var(--ink-soft);
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+    white-space:nowrap;
+  }
+  nav button.active{
+    color:var(--accent-dark);
+    border-bottom-color:var(--accent);
+    font-weight:600;
+  }
+  main{
+    padding:16px;
+    max-width:720px;
+    margin:0 auto;
+    padding-bottom:60px;
+  }
+  section.tab{display:none;}
+  section.tab.active{display:block;}
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:16px;
+    margin-bottom:14px;
+  }
+  .card h2{
+    margin:0 0 12px;
+    font-size:15px;
+    font-weight:600;
+  }
+  label{
+    display:block;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin:10px 0 4px;
+  }
+  label:first-child{margin-top:0;}
+  input[type=text], input[type=password], input[type=number], textarea, select{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    font-size:14px;
+    background:#fdfcfa;
+    color:var(--ink);
+    font-family:inherit;
+  }
+  textarea{resize:vertical;min-height:70px;}
+  .row{display:flex;gap:8px;}
+  .row > *{flex:1;}
+  button.btn{
+    display:inline-block;
+    border:none;
+    background:var(--accent);
+    color:#fff;
+    padding:10px 16px;
+    border-radius:8px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    margin-top:10px;
+  }
+  button.btn:active{background:var(--accent-dark);}
+  button.btn.secondary{
+    background:var(--accent-soft);
+    color:var(--accent-dark);
+  }
+  button.btn.warn{
+    background:var(--warn-soft);
+    color:var(--warn);
+  }
+  button.btn.small{
+    padding:6px 10px;
+    font-size:12px;
+    margin-top:0;
+  }
+  button.btn:disabled{opacity:0.5;cursor:default;}
+  .muted{color:var(--ink-soft);font-size:12px;}
+  .file-item, .ing-row, .master-row, .grocery-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 0;
+    border-bottom:1px solid var(--line);
+    font-size:13px;
+  }
+  .file-item:last-child, .grocery-row:last-child{border-bottom:none;}
+  .file-item span{flex:1;word-break:break-word;}
+  .pill{
+    display:inline-block;
+    padding:2px 8px;
+    border-radius:999px;
+    background:var(--accent-soft);
+    color:var(--accent-dark);
+    font-size:11px;
+    font-weight:600;
+  }
+  .pill.unresolved{background:var(--warn-soft);color:var(--warn);}
+  .ing-block{
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:10px;
+    margin-bottom:8px;
+    background:#fdfcfa;
+  }
+  .ing-block .top-line{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:8px;
+  }
+  .ing-block .orig-text{font-size:13px;font-weight:600;}
+  .ing-block .sub-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-top:8px;
+  }
+  .result-box{
+    background:#fdfcfa;
+    border:1px dashed var(--line);
+    border-radius:8px;
+    padding:12px;
+    font-size:13px;
+    white-space:pre-wrap;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    line-height:1.5;
+    max-height:340px;
+    overflow-y:auto;
+  }
+  .stat-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:10px;
+    margin:10px 0;
+  }
+  .stat{
+    background:var(--accent-soft);
+    border-radius:8px;
+    padding:10px;
+    text-align:center;
+  }
+  .stat .n{font-size:20px;font-weight:700;color:var(--accent-dark);}
+  .stat .l{font-size:11px;color:var(--ink-soft);}
+  .status{
+    font-size:12px;
+    padding:8px 10px;
+    border-radius:8px;
+    margin-top:8px;
+  }
+  .status.info{background:var(--accent-soft);color:var(--accent-dark);}
+  .status.error{background:var(--warn-soft);color:var(--warn);}
+  .candidate-btn{
+    display:block;
+    width:100%;
+    text-align:left;
+    background:#fdfcfa;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:8px 10px;
+    margin-bottom:6px;
+    font-size:12px;
+    cursor:pointer;
+  }
+  .candidate-btn b{display:block;font-size:13px;margin-bottom:2px;}
+  hr.sep{border:none;border-top:1px solid var(--line);margin:16px 0;}
+  table.master-table{width:100%;border-collapse:collapse;font-size:12px;}
+  table.master-table th, table.master-table td{
+    text-align:left;
+    padding:6px 4px;
+    border-bottom:1px solid var(--line);
+  }
+  .top-actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .footnote{font-size:11px;color:var(--ink-soft);margin-top:6px;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Batch Macros</h1>
+  <p>Recipe-to-macro calculator, sourced from your cookbooks and real labels.</p>
+</header>
+
+<nav>
+  <button class="tab-btn active" data-tab="breakfast">Breakfast</button>
+  <button class="tab-btn" data-tab="dinner">Dinner</button>
+  <button class="tab-btn" data-tab="grocery">Grocery</button>
+  <button class="tab-btn" data-tab="browse">Browse</button>
+  <button class="tab-btn" data-tab="master">Master List</button>
+  <button class="tab-btn" data-tab="setup">Setup</button>
+</nav>
+
+<main>
+
+  <!-- SETUP TAB -->
+  <section class="tab" id="tab-setup">
+    <div class="card">
+      <h2>Claude API</h2>
+      <label>API key</label>
+      <input type="password" id="apiKey" placeholder="sk-ant-...">
+      <label>Model</label>
+      <input type="text" id="modelName" value="claude-sonnet-5">
+      <div class="footnote">Your key and model choice are stored only on this device (localStorage), and are sent directly from this page to Anthropic's API — never anywhere else.</div>
+      <button class="btn small" onclick="saveSettings()">Save</button>
+      <span id="settingsStatus" class="muted"></span>
+    </div>
+
+    <div class="card">
+      <h2>USDA FoodData Central</h2>
+      <label>API key</label>
+      <input type="password" id="usdaKey" placeholder="DEMO_KEY or your own">
+      <div class="footnote">Used to auto-fill nutrition for generic, unbranded ingredients (raw meat, produce, plain spices) — free, instant signup at <span style="text-decoration:underline;">fdc.nal.usda.gov/api-key-signup</span>. Stored only on this device.</div>
+      <button class="btn small" onclick="saveSettings()">Save</button>
+    </div>
+
+    <div class="card">
+      <h2>Cookbooks</h2>
+      <label>Upload PDF cookbooks</label>
+      <input type="file" id="pdfUpload" accept="application/pdf" multiple>
+      <div id="pdfList" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="card">
+      <h2>AI Instructions</h2>
+      <div class="footnote">This is what Claude reads on every single recipe parse — how to find the right recipe, handle messy PDF text, and format its answer. Edit it as a plain .txt file and re-upload here anytime; no code changes needed, and it's read fresh every call.</div>
+      <label>Upload instructions (.txt)</label>
+      <input type="file" id="instructionsUpload" accept=".txt,text/plain">
+      <div id="instructionsStatus" class="muted" style="margin-top:6px;"></div>
+      <label>Current contents</label>
+      <textarea id="instructionsPreview" rows="8" readonly></textarea>
+    </div>
+
+    <div class="card">
+      <h2>Backup</h2>
+      <div class="top-actions">
+        <button class="btn secondary small" onclick="exportData()">Export JSON</button>
+        <label class="btn secondary small" style="margin:0;">
+          Import JSON
+          <input type="file" id="importFile" accept="application/json" style="display:none;">
+        </label>
+      </div>
+      <div class="footnote">Export after your weekly meal plan in case Safari clears local storage.</div>
+    </div>
+  </section>
+
+  <!-- BREAKFAST TAB -->
+  <section class="tab active" id="tab-breakfast"></section>
+
+  <!-- DINNER TAB -->
+  <section class="tab" id="tab-dinner"></section>
+
+  <!-- GROCERY TAB (combined) -->
+  <section class="tab" id="tab-grocery">
+    <div class="card">
+      <div class="top-actions" style="justify-content:space-between;">
+        <h2 style="margin:0;">Grocery list — combined</h2>
+        <div class="top-actions">
+          <button class="btn secondary small" onclick="copyCombinedGrocery()">Copy</button>
+          <button class="btn warn small" onclick="clearCombinedGrocery()">Clear all</button>
+        </div>
+      </div>
+      <div class="footnote">Totals breakfast + dinner ingredients together. Same item from both sections is combined into one line.</div>
+      <div id="combined-grocery" style="margin-top:10px;"></div>
+    </div>
+  </section>
+
+  <!-- BROWSE TAB (baked-in index, no API needed) -->
+  <section class="tab" id="tab-browse">
+    <div class="card">
+      <div class="top-actions" style="justify-content:space-between;">
+        <h2 style="margin:0;">Browse the cookbooks</h2>
+        <button class="btn secondary small" onclick="refreshBrowse()">Refresh</button>
+      </div>
+      <div class="footnote">Names only, pulled from your uploaded cookbooks — tapping one searches the PDFs and parses the match live with Claude, same as typing it into Breakfast/Dinner directly. Only shows books you currently have uploaded in Setup.</div>
+      <input type="text" id="browseSearch" placeholder="Filter by recipe name...">
+      <div id="browseList" style="margin-top:10px;"></div>
+    </div>
+  </section>
+
+  <!-- MASTER LIST TAB -->
+  <section class="tab" id="tab-master">
+    <div class="card">
+      <h2>Master Ingredient List</h2>
+      <input type="text" id="masterSearch" placeholder="Search ingredients...">
+      <div style="overflow-x:auto;margin-top:10px;">
+        <table class="master-table" id="masterTable"></table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+/* ---------------- STORAGE ---------------- */
+const LS = {
+  apiKey: 'bm_apiKey',
+  usdaKey: 'bm_usdaKey',
+  model: 'bm_model',
+  pdfs: 'bm_pdfs',
+  ingredients: 'bm_ingredients',
+  meals: 'bm_meals',
+  densities: 'bm_densities',
+  instructions: 'bm_instructions'
+};
+
+// Local storage is the fast/synchronous copy. IndexedDB is the durable backup —
+// Safari on iOS can wipe localStorage for a Home Screen web app much more
+// readily than people expect. Both are kept in sync so a launch can recover
+// everything even if the localStorage copy is gone.
+const IDB_NAME = 'batch_macros_db';
+const IDB_STORE = 'state';
+const IDB_VERSION = 1;
+
+function openStateDB(){
+  return new Promise((resolve, reject)=>{
+    if(!window.indexedDB){ reject(new Error('IndexedDB unavailable')); return; }
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = () => {
+      if(!req.result.objectStoreNames.contains(IDB_STORE)) req.result.createObjectStore(IDB_STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error || new Error('IndexedDB open failed'));
+  });
+}
+async function idbGet(key){
+  const db = await openStateDB();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+    tx.oncomplete = () => db.close();
+  });
+}
+async function idbSet(key, val){
+  const db = await openStateDB();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(val, key);
+    tx.oncomplete = () => { db.close(); resolve(true); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  });
+}
+
+function load(key, fallback){
+  try{
+    const v = localStorage.getItem(key);
+    return v ? JSON.parse(v) : fallback;
+  }catch(e){ return fallback; }
+}
+function save(key, val){
+  const json = JSON.stringify(val);
+  try{
+    localStorage.setItem(key, json);
+    hideStorageWarning();
+  }catch(e){
+    showStorageWarning(e);
+  }
+  // Fire-and-forget durable backup — same JSON string, so restore is a plain copy-back.
+  idbSet(key, json).catch(()=>{});
+}
+
+function showStorageWarning(err){
+  let el = document.getElementById('storageWarning');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'storageWarning';
+    el.style.cssText = 'position:sticky;top:0;z-index:20;background:var(--warn-soft);color:var(--warn);padding:8px 14px;font-size:12px;text-align:center;';
+    document.body.insertBefore(el, document.body.firstChild);
+  }
+  const isQuota = err && (err.name==='QuotaExceededError' || /quota/i.test(err.message||''));
+  el.textContent = isQuota
+    ? '⚠ Nothing is saving right now — storage is full or blocked (Private Browsing does this on iOS Safari).'
+    : '⚠ Nothing is saving right now — this browser is blocking storage for this page.';
+  el.style.display = 'block';
+}
+function hideStorageWarning(){
+  const el = document.getElementById('storageWarning');
+  if(el) el.style.display = 'none';
+}
+(function testStorageOnLoad(){
+  try{ localStorage.setItem('bm_storage_test','1'); localStorage.removeItem('bm_storage_test'); }
+  catch(e){ showStorageWarning(e); }
+})();
+
+async function restoreDurableState(){
+  // Only fills in keys missing from localStorage — never overwrites a copy
+  // that's already there, since that one may hold newer edits from this launch.
+  const keys = Object.values(LS);
+  let restored = false;
+  for(const key of keys){
+    try{
+      if(localStorage.getItem(key) === null){
+        const value = await idbGet(key);
+        if(value !== undefined && value !== null){
+          localStorage.setItem(key, value);
+          restored = true;
+        }
+      }
+    }catch(e){}
+  }
+  if(restored){
+    pdfs = load(LS.pdfs, {});
+    Object.keys(pdfs).forEach(name=>{
+      if(typeof pdfs[name] === 'string') pdfs[name] = { text: pdfs[name], pageStarts: [0] };
+    });
+    ingredients = load(LS.ingredients, {});
+    densities = load(LS.densities, {});
+    meals = load(LS.meals, { breakfast:{recipes:[],grocery:{}}, dinner:{recipes:[],grocery:{}} });
+  }
+  return restored;
+}
+
+let pdfs = load(LS.pdfs, {});           // { filename: {text, pageStarts} }
+// migrate any PDFs saved before page tracking was added
+Object.keys(pdfs).forEach(name=>{
+  if(typeof pdfs[name] === 'string'){
+    pdfs[name] = { text: pdfs[name], pageStarts: [0] };
+  }
+});
+let ingredients = load(LS.ingredients, {}); // { id: {name, brand, servingGrams, servingUnit, calories, protein} }
+let densities = load(LS.densities, {}); // { "ingredientname|unit": gramsForOneOfThatUnit }
+let meals = load(LS.meals, {
+  breakfast: { recipes: [], grocery: {} },
+  dinner: { recipes: [], grocery: {} }
+});
+
+/* ---------------- BAKED-IN RECIPE INDEX (no API needed to browse) ---------------- */
+const RECIPE_INDEX = [
+  {title:"Maple Bacon Donut", book:"Shred Donuts", mealType:"breakfast", category:"Donuts"},
+  {title:"Birthday Party Donut", book:"Shred Donuts", mealType:"breakfast", category:"Donuts"},
+  {title:"Cinnamon Crunch Donut", book:"Shred Donuts", mealType:"breakfast", category:"Donuts"},
+  {title:"PB & Yay! Donut", book:"Shred Donuts", mealType:"breakfast", category:"Donuts"},
+  {title:"French Vanilla Crumble", book:"Shred Donuts", mealType:"breakfast", category:"Donuts"},
+  {title:"Pancakes & Ice Cream Donut", book:"Shred Donuts", mealType:"breakfast", category:"Donuts"},
+  {title:"Pixie Stardust Nutty", book:"Shred Donuts", mealType:"breakfast", category:"Donuts"},
+  {title:"Tomcat Glazer", book:"Shred Donuts", mealType:"breakfast", category:"Donuts"},
+  {title:"Birria Queso Protein Bowl", book:"Set It & Shred It", mealType:"dinner", category:"Bowls"},
+  {title:"Pizza Pocket Burritos", book:"Set It & Shred It", mealType:"dinner", category:"Burritos"},
+  {title:"Chicken Parmesan Alfredo", book:"Set It & Shred It", mealType:"dinner", category:"Pasta"},
+  {title:"Buffalo Chicken Mac N Cheese", book:"Set It & Shred It", mealType:"dinner", category:"Mac & Cheese"},
+  {title:"Chicken Verde Nacho Burritos", book:"Set It & Shred It", mealType:"dinner", category:"Burritos"},
+  {title:"Cheddar Chicken Broccoli & Rice", book:"Set It & Shred It", mealType:"dinner", category:"Rice Bowls"},
+  {title:"Slow Cooked Breakfast Burritos", book:"Set It & Shred It", mealType:"breakfast", category:"Breakfast Burritos"},
+  {title:"Philly Steak & Rice Bowls", book:"Set It & Shred It", mealType:"dinner", category:"Rice Bowls"},
+  {title:"Chicken Bacon Ranch Pasta", book:"Set It & Shred It", mealType:"dinner", category:"Pasta"},
+  {title:"Mongolian Beef & Rice", book:"Set It & Shred It", mealType:"dinner", category:"Rice Bowls"},
+  {title:"Creamy Chicken Tortellini", book:"Set It & Shred It", mealType:"dinner", category:"Pasta"},
+  {title:"Queso Chicken & Rice Bowls", book:"Set It & Shred It", mealType:"dinner", category:"Rice Bowls"},
+  {title:"Creamy Tuscan Chicken & Rice", book:"Set It & Shred It", mealType:"dinner", category:"Rice Bowls"},
+  {title:"Queso Taco Mac N Cheese", book:"Set It & Shred It", mealType:"dinner", category:"Mac & Cheese"},
+  {title:"Buffalo Gameday Burritos", book:"Set It & Shred It", mealType:"dinner", category:"Burritos"},
+  {title:"Chipotle Queso Steak & Rice Bowls", book:"Set It & Shred It", mealType:"dinner", category:"Rice Bowls"},
+  {title:"Queso Steak Macaroni & Cheese", book:"Set It & Shred It", mealType:"dinner", category:"Mac & Cheese"},
+  {title:"Queso Beefy Rice Burritos", book:"Set It & Shred It", mealType:"dinner", category:"Burritos"},
+  {title:"Creamy Tuscan Steak & Pasta", book:"Set It & Shred It", mealType:"dinner", category:"Pasta"},
+  {title:"Mini Tacos", book:"Fast Food Flips", mealType:"dinner", category:"Tacos"},
+  {title:"Pizza Bagel Bites", book:"Fast Food Flips", mealType:"dinner", category:"Pizza"},
+  {title:"Cheesy Chicken Taquitos", book:"Fast Food Flips", mealType:"dinner", category:"Taquitos"},
+  {title:"Corn Dogs", book:"Fast Food Flips", mealType:"dinner", category:"Corn Dogs"},
+  {title:"Classic Party Pizza", book:"Fast Food Flips", mealType:"dinner", category:"Pizza"},
+  {title:"Tasty Shred Pizza Rolls", book:"Fast Food Flips", mealType:"dinner", category:"Pizza"},
+  {title:"Shred Pockets", book:"Fast Food Flips", mealType:"dinner", category:"Pizza"},
+  {title:"Cheddar Bacon Fries", book:"Fast Food Flips", mealType:"dinner", category:"Fries"},
+  {title:"Chicken Garlic Parm Taquitos", book:"Fast Food Flips", mealType:"dinner", category:"Taquitos"},
+  {title:"Steak & Bacon Bagel", book:"Fast Food Flips", mealType:"breakfast", category:"Breakfast"},
+  {title:"Chipotle BBQ Nuggets", book:"Fast Food Flips", mealType:"dinner", category:"Nuggets"},
+  {title:"Stuff Crust Meat Attack", book:"Fast Food Flips", mealType:"dinner", category:"Pizza"},
+  {title:"Cheesy Protein Fiesta Bowl", book:"Fast Food Flips", mealType:"dinner", category:"Bowls"},
+  {title:"Surf and Turf Loaded Fries", book:"Fast Food Flips", mealType:"dinner", category:"Fries"},
+  {title:"Crunch Wrap Supreme", book:"Fast Food Flips", mealType:"dinner", category:"Wraps"},
+  {title:"Classic Baconator", book:"Fast Food Flips", mealType:"dinner", category:"Burgers"},
+  {title:"Mini Poblano Chicken Tacos", book:"Fast Food Flips", mealType:"dinner", category:"Tacos"},
+  {title:"Gym N Out Fries", book:"Fast Food Flips", mealType:"dinner", category:"Fries"},
+  {title:"Mexican Pizza", book:"Fast Food Flips", mealType:"dinner", category:"Pizza"},
+  {title:"Southwest Steak Burrito", book:"Fast Food Flips", mealType:"dinner", category:"Burritos"},
+  {title:"Healthy Pizza Dippers", book:"Fast Food Flips", mealType:"dinner", category:"Pizza"},
+  {title:"Healthy Protein Nuggets", book:"Fast Food Flips", mealType:"dinner", category:"Nuggets"},
+  {title:"Pepper Jacked Crunch Wrap", book:"Fast Food Flips", mealType:"dinner", category:"Wraps"},
+  {title:"Jalapeno Ranch Fries", book:"Fast Food Flips", mealType:"dinner", category:"Fries"},
+  {title:"S.O.B. breakfast burrito", book:"Tasty Shreds (New Recipes)", mealType:"breakfast", category:"Burritos"},
+  {title:"Breakfast Bagel Club", book:"Tasty Shreds (New Recipes)", mealType:"breakfast", category:"Sandwiches"},
+  {title:"Hungry Man Waffle plate", book:"Tasty Shreds (New Recipes)", mealType:"breakfast", category:"Other"},
+  {title:"Kyle’s Turkey bacon club", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Sandwiches"},
+  {title:"Flat bread garlic chicken pizza", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Pizza"},
+  {title:"Taco Tuesdays Taco", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Tacos"},
+  {title:"AM Meatzilla Burrito", book:"Tasty Shreds (New Recipes)", mealType:"breakfast", category:"Burritos"},
+  {title:"In and Out style Burger", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Burgers"},
+  {title:"Buffalo J.M. Burger", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Burgers"},
+  {title:"Chocolate PB Banana Shake", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Dessert / Shakes"},
+  {title:"Turkey Bacon Jalapeno Ranch Pizza", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Pizza"},
+  {title:"Flat bread pepperoni pizza", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Pizza"},
+  {title:"Classic breakfast burrito", book:"Tasty Shreds (New Recipes)", mealType:"breakfast", category:"Burritos"},
+  {title:"Crispy Chicken Zinger Sandwhich", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Other"},
+  {title:"Skinny Pizza Bagel", book:"Tasty Shreds (New Recipes)", mealType:"breakfast", category:"Pizza"},
+  {title:"Bacon Wrapped Mandate Dog", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Wraps"},
+  {title:"Game day buffalo nuggets/quesadilla", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Tacos"},
+  {title:"Chicken Bacon Gameday Roll UPS", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Wraps"},
+  {title:"Chicken Alfredo Garlic Fries", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Pasta / Mac & Cheese"},
+  {title:"The Chillest Chili", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Other"},
+  {title:"2 EZ buffalo dip sandwhiches", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Dips & Sides"},
+  {title:"Kyle’s BIG “M” Burger", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Burgers"},
+  {title:"Skinny Breakfast Skillet", book:"Tasty Shreds (New Recipes)", mealType:"breakfast", category:"Other"},
+  {title:"Beef Stroganoff", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Other"},
+  {title:"Anabolic Greek Gyro", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Other"},
+  {title:"Sheese Steak Sub", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Sandwiches"},
+  {title:"Protein Pizza", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Pizza"},
+  {title:"Lean Machine “TOT”chos", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Other"},
+  {title:"Tasty Shredder Breakfast Quesadilla", book:"Tasty Shreds (New Recipes)", mealType:"breakfast", category:"Tacos"},
+  {title:"High Protein Berry Froyo", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Dessert / Shakes"},
+  {title:"“Filthy” Cheesesteak Pizza", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Pizza"},
+  {title:"The “Beast” Omelette", book:"Tasty Shreds (New Recipes)", mealType:"breakfast", category:"Other"},
+  {title:"California King Burrito", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Burritos"},
+  {title:"Creamy Turkey Rotini Pasta", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Pasta / Mac & Cheese"},
+  {title:"Tyson Buffalo Chicken Sammies", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Sandwiches"},
+  {title:"Quest Power Nachos", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Other"},
+  {title:"Not a Chevy Breakfast Sandwich", book:"Tasty Shreds (New Recipes)", mealType:"breakfast", category:"Sandwiches"},
+  {title:"D.B.T.R. Chicken Turkey Club", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Sandwiches"},
+  {title:"Loaded Enchilada Fries", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Fries"},
+  {title:"Waffle Iron", book:"Tasty Shreds (New Recipes)", mealType:"breakfast", category:"Other"},
+  {title:"Low Cal Turkey Panini", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Sandwiches"},
+  {title:"BIG “MAD” Quesadilla", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Tacos"},
+  {title:"Creamy Chicken Bacon Pasta", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Pasta / Mac & Cheese"},
+  {title:"Ohhh so good Creamy Chicken Alfredo", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Pasta / Mac & Cheese"},
+  {title:"Mother Fepping Nuggets", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Nuggets"},
+  {title:"Chicken Ranch PITA", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Sandwiches"},
+  {title:"Tasty Swole Burrito", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Burritos"},
+  {title:"Spicy viral Cfa Nuggets", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Nuggets"},
+  {title:"Jalapeno Popper Tacos", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Tacos"},
+  {title:"Arnolds Bicep Burrito", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Burritos"},
+  {title:"Nostalgia Pocket aka pizza pocket", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Pizza"},
+  {title:"Bro Back Mountain aka grilled chicken", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Other"},
+  {title:"Creamy Chipotle Steak fries", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Fries"},
+  {title:"Creamy Chipotle Sauce", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Dips & Sides"},
+  {title:"K.M.W.N.O.O.Y.M. breakfast taco", book:"Tasty Shreds (New Recipes)", mealType:"breakfast", category:"Tacos"},
+  {title:"Chipotle Chicken Mac n Cheese", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Pasta / Mac & Cheese"},
+  {title:"Arnold’s Tricep Burrito", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Burritos"},
+  {title:"Pizza Pasta", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Pizza"},
+  {title:"Cutlers Calves (breakfast burrito)", book:"Tasty Shreds (New Recipes)", mealType:"breakfast", category:"Burritos"},
+  {title:"Strawberry Milkshake", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Dessert / Shakes"},
+  {title:"Snoop Dog", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Other"},
+  {title:"Sonic the Hedgedog", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Other"},
+  {title:"White Hot Ranch Barbacoa Fries", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Fries"},
+  {title:"Dill Or No Dill", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Other"},
+  {title:"Creamy Cheesy Barbacoa Burrito", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Burritos"},
+  {title:"Mac N Cheese Pizza", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Pizza"},
+  {title:"Creamy Chipotle Chicken Burrito", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Burritos"},
+  {title:"Pollo Asado Bravado", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Other"},
+  {title:"Animal Fry Meal Prep", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Other"},
+  {title:"Brookie Monster", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Dessert / Shakes"},
+  {title:"Rhymes w/Scoreo Shake", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Dessert / Shakes"},
+  {title:"Beefy Fajita Mac N Cheese", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Pasta / Mac & Cheese"},
+  {title:"Carnitas Street Taco Pizza", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Tacos"},
+  {title:"Animal Style Burger", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Burgers"},
+  {title:"Blazing Gobbler", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Other"},
+  {title:"Pizza Quesadilla II", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Tacos"},
+  {title:"Bacon N Egg Bagel Sandwich", book:"Tasty Shreds (New Recipes)", mealType:"breakfast", category:"Sandwiches"},
+  {title:"Rooster Eggs (Protein Bites)", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Other"},
+  {title:"Creamy Buffalo Grilled Cheese", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Other"},
+  {title:"Cherry Crumble cheesecake", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Dessert / Shakes"},
+  {title:"Animal Fry Burrito", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Burritos"},
+  {title:"Creamy Cajun Pasta", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Pasta / Mac & Cheese"},
+  {title:"Birthday Cake Cheesecake", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Dessert / Shakes"},
+  {title:"Pin Wheel PIZZA", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Pizza"},
+  {title:"Pizza Pocket Burrito", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Burritos"},
+  {title:"Pretzel Bites w/beer cheese", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Other"},
+  {title:"Creamy Chicken Pesto Pasta", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Pasta / Mac & Cheese"},
+  {title:"Anabolic orange Chicken", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Other"},
+  {title:"Creamy Alfredo Meatball Spaghetti", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Pasta / Mac & Cheese"},
+  {title:"Poor Boy Mcmuffins", book:"Tasty Shreds (New Recipes)", mealType:"breakfast", category:"Other"},
+  {title:"Arugula Chicken Pesto MAC", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Other"},
+  {title:"High Protein Chicken Alfredo", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Pasta / Mac & Cheese"},
+  {title:"Chicken Pesto Pizza", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Pizza"},
+  {title:"Creamy Pesto Arugula Sauce", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Dips & Sides"},
+  {title:"Bacon Jalapeno Artichoke Dip", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Dips & Sides"},
+  {title:"Spicy Riga”toned”", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Other"},
+  {title:"Spicy Crispy Chicken Sandwich", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Sandwiches"},
+  {title:"Oreo Bday Cheesecake", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Dessert / Shakes"},
+  {title:"Cbums Quad Burrito", book:"Tasty Shreds (New Recipes)", mealType:"dinner", category:"Burritos"},
+  {title:"The Perfect Steak Breakfast Burrito", book:"Tasty Shreds (New Recipes)", mealType:"breakfast", category:"Burritos"},
+  {title:"Bang Bang Chicken & Macaroni", book:"Meal Prepped", mealType:"dinner", category:"Other"},
+  {title:"Cheese Steak Skillet Bowls", book:"Meal Prepped", mealType:"dinner", category:"Bowls"},
+  {title:"Buffalo Ranch Protein Bowl", book:"Meal Prepped", mealType:"dinner", category:"Bowls"},
+  {title:"High Protein Hamburer Helper", book:"Meal Prepped", mealType:"dinner", category:"Other"},
+  {title:"Breakfast Taco Bowls", book:"Meal Prepped", mealType:"breakfast", category:"Tacos"},
+  {title:"Chicken Bacon Ranch Bowls", book:"Meal Prepped", mealType:"dinner", category:"Bowls"},
+  {title:"Steak Bites & Buffalo Mac", book:"Meal Prepped", mealType:"dinner", category:"Other"},
+  {title:"Nacho Cheese Dip Bowl", book:"Meal Prepped", mealType:"dinner", category:"Bowls"},
+  {title:"Pizza Protein Bowls", book:"Meal Prepped", mealType:"dinner", category:"Pizza"},
+  {title:"Garlic Steak Bites w/Cheesy", book:"Meal Prepped", mealType:"dinner", category:"Other"},
+  {title:"Cheesy Cajun Crispy Potato’S", book:"Meal Prepped", mealType:"dinner", category:"Other"},
+  {title:"Surf N Turf Cajun Mac", book:"Meal Prepped", mealType:"dinner", category:"Other"},
+  {title:"Chipotle Rice Steak Bowls", book:"Meal Prepped", mealType:"dinner", category:"Bowls"},
+  {title:"Taco Truck Protein Bowl", book:"Meal Prepped", mealType:"dinner", category:"Tacos"},
+  {title:"California Burrito Bowls", book:"Meal Prepped", mealType:"dinner", category:"Burritos"},
+  {title:"Garlic Parmesan Potato Bowls", book:"Meal Prepped", mealType:"dinner", category:"Bowls"},
+  {title:"Smash Burger Bowls", book:"Meal Prepped", mealType:"dinner", category:"Burgers"},
+  {title:"Enchilada Chicken Bowls", book:"Meal Prepped", mealType:"dinner", category:"Bowls"},
+  {title:"Beef Mongolian Noodles", book:"Meal Prepped", mealType:"dinner", category:"Pasta / Mac & Cheese"},
+  {title:"Creamy Cajun Chicken Alfredo", book:"Meal Prepped", mealType:"dinner", category:"Pasta / Mac & Cheese"},
+  {title:"Buffalo Nuggets Macaroni", book:"Meal Prepped", mealType:"dinner", category:"Nuggets"},
+  {title:"Loaded Potato Nachos & Steak", book:"Meal Prepped", mealType:"dinner", category:"Other"},
+  {title:"Cheese Steak Breakfast Bowls", book:"Meal Prepped", mealType:"breakfast", category:"Bowls"},
+  {title:"Queso Beef And Rice Bowls", book:"Meal Prepped", mealType:"dinner", category:"Bowls"},
+  {title:"Orange Chicken & Chow Mein", book:"Meal Prepped", mealType:"dinner", category:"Other"},
+  {title:"Crispy Garlic Lemon Chicken W/ Mac & Cheese", book:"Meal Prepped", mealType:"dinner", category:"Pasta / Mac & Cheese"},
+  {title:"Queso Chicken & Rice Burritos", book:"Meal Prepped", mealType:"dinner", category:"Burritos"},
+  {title:"Alfredo Chicken w/Wedges", book:"Meal Prepped", mealType:"dinner", category:"Pasta / Mac & Cheese"},
+  {title:"Korean Beef Mac & Cheese", book:"Meal Prepped", mealType:"dinner", category:"Pasta / Mac & Cheese"},
+  {title:"Buffalo Creamy Chicken Pasta", book:"Meal Prepped", mealType:"dinner", category:"Pasta / Mac & Cheese"},
+  {title:"Philly Steak Bites & High-Protein Mashed Potatoes", book:"Meal Prepped", mealType:"dinner", category:"Other"},
+  {title:"Ultimate Breakfast Bowl", book:"Meal Prepped", mealType:"breakfast", category:"Bowls"},
+  {title:"Hot Honey Sweet Potato Taco Bowls", book:"Meal Prepped", mealType:"breakfast", category:"Tacos"},
+  {title:"Cheddar Bacon Broccoli Alfredo", book:"Meal Prepped", mealType:"dinner", category:"Pasta / Mac & Cheese"},
+  {title:"Greek Chicken Lemon Alfredo", book:"Meal Prepped", mealType:"dinner", category:"Pasta / Mac & Cheese"},
+  {title:"Cheddar Bacon Cajun Alfredo", book:"Meal Prepped", mealType:"dinner", category:"Pasta / Mac & Cheese"},
+  {title:"Green Chile Chicken Burritos", book:"Meal Prepped", mealType:"dinner", category:"Burritos"},
+  {title:"Tuscan Chicken & Creamy Rice", book:"Meal Prepped", mealType:"dinner", category:"Other"},
+  {title:"Honey Chipotle Chicken Nacho Potato Bowls", book:"Meal Prepped", mealType:"dinner", category:"Bowls"},
+  {title:"Southwest Queso Chicken Rice Bowls", book:"Meal Prepped", mealType:"dinner", category:"Bowls"}
+];
+
+function normalizeForMatch(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(); }
+
+// Cached, recomputed only when the uploaded PDFs actually change — checking every
+// recipe title against every uploaded PDF's text is real verification (not a
+// filename guess), but it's too slow to redo on every keystroke while searching.
+let browseAvailable = RECIPE_INDEX.map(()=>false);
+function recomputeBrowseAvailability(){
+  const haystacks = Object.values(pdfs).map(entry => normalizeForMatch(entry.text));
+  browseAvailable = RECIPE_INDEX.map(r=>{
+    const needle = normalizeForMatch(r.title);
+    if(!needle) return false;
+    return haystacks.some(hay => hay.includes(needle));
+  });
+}
+
+function refreshBrowse(){
+  recomputeBrowseAvailability();
+  renderBrowse();
+}
+
+function renderBrowse(){
+  const filter = (document.getElementById('browseSearch').value || '').toLowerCase();
+  const listEl = document.getElementById('browseList');
+
+  const filtered = RECIPE_INDEX.filter((r,idx)=> browseAvailable[idx] && (!filter || r.title.toLowerCase().includes(filter)));
+
+  const groups = {breakfast:{}, dinner:{}};
+  filtered.forEach(r=>{
+    if(!groups[r.mealType][r.category]) groups[r.mealType][r.category] = [];
+    groups[r.mealType][r.category].push(r);
+  });
+
+  let html = '';
+  ['breakfast','dinner'].forEach(mt=>{
+    const cats = Object.keys(groups[mt]).sort();
+    if(!cats.length) return;
+    html += `<h2 style="margin:16px 0 6px;text-transform:capitalize;">${mt}</h2>`;
+    cats.forEach(cat=>{
+      html += `<div class="muted" style="margin:8px 0 4px;font-weight:600;">${cat}</div>`;
+      groups[mt][cat].forEach(r=>{
+        const idx = RECIPE_INDEX.indexOf(r);
+        html += `
+          <div class="file-item">
+            <span>${r.title} <span class="muted">— ${r.book}</span></span>
+            <button class="btn secondary small" onclick="useBrowseRecipe(${idx},'breakfast')">→ Breakfast</button>
+            <button class="btn secondary small" onclick="useBrowseRecipe(${idx},'dinner')">→ Dinner</button>
+          </div>`;
+      });
+    });
+  });
+  listEl.innerHTML = html || '<div class="muted">No matches — nothing in your currently uploaded PDFs matches this, or none are uploaded yet.</div>';
+}
+document.getElementById('browseSearch').addEventListener('input', renderBrowse);
+
+function useBrowseRecipe(idx, type){
+  const r = RECIPE_INDEX[idx];
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelector(`.tab-btn[data-tab="${type}"]`).classList.add('active');
+  document.getElementById('tab-'+type).classList.add('active');
+  document.getElementById(type+'-query').value = r.title;
+  document.getElementById(type+'-workspace').innerHTML = '';
+  findRecipe(type);
+}
+
+/* ---------------- TAB SWITCHING ---------------- */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ---------------- SETUP ---------------- */
+
+
+function saveSettings(){
+  save(LS.apiKey, document.getElementById('apiKey').value.trim());
+  save(LS.model, document.getElementById('modelName').value.trim() || 'claude-sonnet-5');
+  save(LS.usdaKey, document.getElementById('usdaKey').value.trim());
+  const s = document.getElementById('settingsStatus');
+  s.textContent = 'Saved.';
+  setTimeout(()=>s.textContent='', 1500);
+}
+
+const DEFAULT_INSTRUCTIONS = `AI RECIPE EXTRACTION INSTRUCTIONS
+(The app sends this file's contents to Claude on every single recipe parse. Edit this file and re-upload it in Setup to change how extraction behaves — no code changes needed.)
+
+You are extracting ONE specific recipe from raw, messy text that was mechanically pulled out of a PDF cookbook page. The text can have serious layout problems:
+- Two-column pages get merged into one text stream, so lines from the left column and the right column can interleave or run together mid-sentence.
+- An ingredient can get split across lines that don't actually belong together, or two unrelated ingredients can get glued into one line.
+- Page numbers, headers, "PRO TIPS", side notes, and fragments of a NEIGHBORING recipe can appear in the same raw text block you're given, especially near the top or bottom of the excerpt.
+
+CRITICAL RULE — MATCH THE EXACT TARGET RECIPE, NOTHING ELSE:
+You will be told the TARGET RECIPE NAME. Only extract ingredients and details for THAT exact recipe. If the raw text contains fragments of a different recipe — before it, after it, or elsewhere on the same page — IGNORE those fragments completely, even if they're physically close to the target recipe's ingredient list. Do not blend, merge, or substitute ingredients from a different recipe into your answer. If you are not confident an ingredient line actually belongs to the TARGET RECIPE, leave it out rather than guessing. Getting the wrong recipe's ingredients is a serious error — when in doubt, extract less, not more.
+
+CRITICAL RULE — DON'T MISS INGREDIENTS SPLIT BY BAD LINE-WRAPPING:
+Because of the column-merging problem, a single ingredient can visually look like two things, or two separate ingredients can look like one merged line. Read carefully line by line and use common sense about what a real grocery ingredient looks like (a name + a quantity). For example, if you see something like:
+
+  "Turkey bacon, uncured, 2
+  slices Walmart Turkey Sausage
+  Pattie, 1 patty"
+
+That is actually TWO separate ingredients that got visually merged by the extraction:
+  1. "Turkey bacon, uncured, 2 slices"
+  2. "Walmart Turkey Sausage Pattie, 1 patty"
+
+Always double-check: does each ingredient line make sense as ONE real food item with ONE real quantity? If a line seems to smash two different foods together, split it into two separate ingredient entries. Count the ingredients listed and sanity-check that number feels complete for the dish described.
+
+CRITICAL RULE — INGREDIENT LIST VS. DIRECTIONS CONFLICTS:
+If the ingredient list states one quantity for an item but the numbered directions state a different (usually smaller, more specific) quantity actually being used in the steps, use the quantity from the DIRECTIONS — that's what's actually used in the recipe, not what the ingredient list rounds up to.
+
+OUTPUT FORMAT — return ONLY a JSON object, nothing else, no preamble, no markdown fences:
+{
+  "title": "recipe title exactly as printed on the page",
+  "servings": <number, or null if no serving count is stated anywhere on the page>,
+  "ingredients": [ {"text": "ingredient exactly as it should read, e.g. '4 lb raw chicken breast'"} ],
+  "confidence": "high" | "medium" | "low",
+  "notes": "a brief note only if something was ambiguous or you had to make a judgment call — otherwise an empty string"
+}
+
+If the TARGET RECIPE NAME cannot actually be found in the provided raw text, do not substitute a different recipe. Instead return exactly:
+{"title": null, "servings": null, "ingredients": [], "confidence": "low", "notes": "target recipe not found in the provided text"}
+
+Never include cooking directions or numbered steps in the ingredients array. Never invent an ingredient that isn't actually printed on the page.`;
+
+document.getElementById('instructionsUpload').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const text = await file.text();
+  save(LS.instructions, text);
+  document.getElementById('instructionsPreview').value = text;
+  const statusEl = document.getElementById('instructionsStatus');
+  statusEl.textContent = 'Loaded — will be used on every parse from now on.';
+  setTimeout(()=>statusEl.textContent='', 2500);
+  e.target.value = '';
+});
+
+function renderPdfList(){
+  const el = document.getElementById('pdfList');
+  const names = Object.keys(pdfs);
+  if(!names.length){ el.innerHTML = '<div class="muted">No cookbooks uploaded yet.</div>'; return; }
+  el.innerHTML = names.map(n=>`
+    <div class="file-item">
+      <span>${n} <span class="muted">(${pdfs[n].pageStarts ? pdfs[n].pageStarts.length : '?'} pages)</span></span>
+      <button class="btn warn small" onclick="removePdf('${n.replace(/'/g,"\\'")}')">Remove</button>
+    </div>
+  `).join('');
+}
+function removePdf(name){
+  delete pdfs[name];
+  save(LS.pdfs, pdfs);
+  renderPdfList();
+  refreshBrowse();
+}
+
+document.getElementById('pdfUpload').addEventListener('change', async (e)=>{
+  const files = Array.from(e.target.files);
+  for(const f of files){
+    const buf = await f.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+    let text = '';
+    const pageStarts = [];
+    for(let i=1;i<=pdf.numPages;i++){
+      pageStarts.push(text.length);
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(it=>it.str).join(' ') + '\n\n';
+    }
+    pdfs[f.name] = { text, pageStarts };
+  }
+  save(LS.pdfs, pdfs);
+  renderPdfList();
+  refreshBrowse();
+  e.target.value = '';
+});
+
+function pageNumberForIndex(pdfEntry, charIndex){
+  let page = 1;
+  for(let p=0; p<pdfEntry.pageStarts.length; p++){
+    if(pdfEntry.pageStarts[p] <= charIndex) page = p+1;
+    else break;
+  }
+  return page;
+}
+
+function exportData(){
+  const instructions = load(LS.instructions, DEFAULT_INSTRUCTIONS);
+  const blob = new Blob([JSON.stringify({pdfs, ingredients, meals, densities, instructions}, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'batch-macros-backup.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+document.getElementById('importFile').addEventListener('change', async (e)=>{
+  const f = e.target.files[0];
+  if(!f) return;
+  const text = await f.text();
+  try{
+    const data = JSON.parse(text);
+    if(data.pdfs) pdfs = data.pdfs;
+    if(data.ingredients) ingredients = data.ingredients;
+    if(data.meals) meals = data.meals;
+    if(data.densities) densities = data.densities;
+    save(LS.pdfs, pdfs); save(LS.ingredients, ingredients); save(LS.meals, meals); save(LS.densities, densities);
+    if(data.instructions){ save(LS.instructions, data.instructions); document.getElementById('instructionsPreview').value = data.instructions; }
+    renderPdfList(); renderMaster(); renderMealTab('breakfast'); renderMealTab('dinner'); renderCombinedGrocery(); refreshBrowse();
+    alert('Import complete.');
+  }catch(err){ alert('Could not read that file: ' + err.message); }
+  e.target.value = '';
+});
+
+/* ---------------- CLAUDE API ---------------- */
+async function callClaude(messages, maxTokens){
+  const apiKey = load(LS.apiKey, '');
+  const model = load(LS.model, 'claude-sonnet-5');
+  if(!apiKey) throw new Error('No API key set. Add one in Setup.');
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: maxTokens || 1500,
+      messages
+    })
+  });
+  if(!resp.ok){
+    const errText = await resp.text();
+    throw new Error(`API error ${resp.status}: ${errText.slice(0,300)}`);
+  }
+  const data = await resp.json();
+  const textBlock = (data.content || []).find(c=>c.type==='text');
+  return textBlock ? textBlock.text : '';
+}
+
+
+function extractJson(text){
+  const match = text.match(/\{[\s\S]*\}/);
+  if(!match) throw new Error('No JSON found in AI response.');
+  return JSON.parse(match[0]);
+}
+
+/* ---------------- INGREDIENT MASTER LIST ---------------- */
+function ingId(name){
+  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g,'-');
+}
+function renderMaster(){
+  const filter = (document.getElementById('masterSearch').value || '').toLowerCase();
+  const table = document.getElementById('masterTable');
+  const rows = Object.entries(ingredients)
+    .filter(([id,ing])=> !filter || ing.name.toLowerCase().includes(filter) || (ing.brand||'').toLowerCase().includes(filter))
+    .sort((a,b)=> a[1].name.localeCompare(b[1].name));
+  if(!rows.length){
+    table.innerHTML = '<tr><td class="muted">No ingredients logged yet.</td></tr>';
+    return;
+  }
+  table.innerHTML = `
+    <tr>
+      <th>Ingredient</th><th>Brand</th><th>Serving</th><th>Cal</th><th>Protein</th><th>Cal/g</th><th></th>
+    </tr>
+    ${rows.map(([id,ing])=>`
+      <tr>
+        <td>${ing.name}</td>
+        <td>${ing.brand||'-'}</td>
+        <td>${ing.servingGrams}g</td>
+        <td>${ing.calories}</td>
+        <td>${ing.protein}g</td>
+        <td>${(ing.calories/ing.servingGrams).toFixed(2)}</td>
+        <td><button class="btn warn small" onclick="deleteIngredient('${id}')">Delete</button></td>
+      </tr>
+    `).join('')}
+  `;
+}
+function deleteIngredient(id){
+  if(!confirm('Delete this ingredient? You\'ll need to re-enter it next time a recipe calls for it.')) return;
+  delete ingredients[id];
+  save(LS.ingredients, ingredients);
+  renderMaster();
+  renderMealTab('breakfast'); renderMealTab('dinner');
+}
+document.getElementById('masterSearch').addEventListener('input', renderMaster);
+
+/* ---------------- MEAL TABS (breakfast / dinner) ---------------- */
+function mealState(type){ return meals[type]; }
+
+function renderMealTab(type){
+  const container = document.getElementById('tab-'+type);
+  const state = mealState(type);
+
+  let html = `
+    <div class="card">
+      <h2>Find a recipe</h2>
+      <label>Recipe name</label>
+      <div class="row">
+        <input type="text" id="${type}-query" placeholder="e.g. Birria Queso Protein Bowl">
+        <button class="btn" style="flex:0 0 auto;" onclick="findRecipe('${type}')">Find</button>
+      </div>
+      <div id="${type}-candidates"></div>
+      <div id="${type}-status"></div>
+      <button class="btn warn small" style="margin-top:10px;" onclick="resetWorkspace('${type}')">Reset this recipe</button>
+    </div>
+    <div id="${type}-workspace"></div>
+    <div class="card">
+      <div class="top-actions" style="justify-content:space-between;">
+        <h2 style="margin:0;">Grocery list</h2>
+        <div class="top-actions">
+          <button class="btn secondary small" onclick="copyGrocery('${type}')">Copy</button>
+          <button class="btn warn small" onclick="clearGrocery('${type}')">Clear list</button>
+        </div>
+      </div>
+      <div id="${type}-grocery"></div>
+    </div>
+  `;
+  container.innerHTML = html;
+  renderGrocery(type);
+}
+(async function initApp(){
+  await restoreDurableState();
+  document.getElementById('apiKey').value = load(LS.apiKey, '');
+  document.getElementById('modelName').value = load(LS.model, 'claude-sonnet-5');
+  document.getElementById('usdaKey').value = load(LS.usdaKey, '');
+  document.getElementById('instructionsPreview').value = load(LS.instructions, DEFAULT_INSTRUCTIONS);
+  renderMealTab('breakfast');
+  renderMealTab('dinner');
+  renderPdfList();
+  renderMaster();
+  renderCombinedGrocery();
+  recomputeBrowseAvailability();
+  renderBrowse();
+})();
+
+function resetWorkspace(type){
+  document.getElementById(type+'-workspace').innerHTML = '';
+  document.getElementById(type+'-status').innerHTML = '';
+  document.getElementById(type+'-candidates').innerHTML = '';
+  document.getElementById(type+'-query').value = '';
+  window['__recipe_'+type] = null;
+  window['__grocery_adds_'+type] = null;
+}
+
+/* ---- Find recipe: search local PDF text for candidates ---- */
+function findRecipe(type){
+  const q = document.getElementById(type+'-query').value.trim();
+  const candEl = document.getElementById(type+'-candidates');
+  const statusEl = document.getElementById(type+'-status');
+  statusEl.innerHTML = '';
+  candEl.innerHTML = '';
+  if(!q){ statusEl.innerHTML = '<div class="status error">Type a recipe name first.</div>'; return; }
+  if(!Object.keys(pdfs).length){ statusEl.innerHTML = '<div class="status error">No cookbooks uploaded. Add PDFs in Setup.</div>'; return; }
+
+  const needle = q.toLowerCase();
+  const candidates = [];
+  Object.entries(pdfs).forEach(([fname, entry])=>{
+    const text = entry.text;
+    const lower = text.toLowerCase();
+    let idx = lower.indexOf(needle);
+    let guard = 0;
+    while(idx !== -1 && guard < 5){
+      const page = pageNumberForIndex(entry, idx);
+      candidates.push({ file: fname, index: idx, page, snippet: text.slice(Math.max(0,idx-20), idx+80).replace(/\s+/g,' ') });
+      idx = lower.indexOf(needle, idx + needle.length + 200); // skip ahead to avoid dup hits in same block
+      guard++;
+    }
+  });
+
+  if(!candidates.length){
+    statusEl.innerHTML = '<div class="status error">No match found in your uploaded cookbooks. Check spelling.</div>';
+    return;
+  }
+  candEl.innerHTML = candidates.map((c,i)=>`
+    <button class="candidate-btn" onclick="parseCandidate('${type}', ${i})">
+      <b>${c.file} — p.${c.page}</b>${c.snippet}...
+    </button>
+  `).join('');
+  window['__candidates_'+type] = candidates;
+}
+
+async function parseCandidate(type, i){
+  const c = window['__candidates_'+type][i];
+  const text = pdfs[c.file].text;
+  const chunk = text.slice(Math.max(0, c.index-200), c.index+3500);
+  const statusEl = document.getElementById(type+'-status');
+  document.getElementById(type+'-candidates').innerHTML = '';
+  statusEl.innerHTML = '<div class="status info">Parsing recipe with Claude...</div>';
+
+  const targetTitle = document.getElementById(type+'-query').value.trim();
+  const instructions = load(LS.instructions, DEFAULT_INSTRUCTIONS); // read fresh, every call
+
+  const prompt = `${instructions}
+
+---
+
+TARGET RECIPE NAME: "${targetTitle}"
+SOURCE: ${c.file}, page ${c.page}
+
+RAW TEXT:
+"""
+${chunk}
+"""`;
+
+  try{
+    const claudeResp = await callClaude([{role:'user', content: prompt}], 1800);
+    const parsed = extractJson(claudeResp);
+
+    if(!parsed.title || (parsed.ingredients||[]).length === 0){
+      statusEl.innerHTML = `<div class="status error">Couldn't confidently find "${targetTitle}" in that text${parsed.notes ? ' — '+parsed.notes : ''}. Try a different match from the list, or check the spelling.</div>`;
+      return;
+    }
+
+    parsed.sourceBook = c.file;
+    parsed.sourcePage = c.page;
+    let note = '<div class="status info">Recipe found. Resolve each ingredient below, then calculate.</div>';
+    if(parsed.confidence && parsed.confidence !== 'high'){
+      note += `<div class="footnote">Claude's confidence on this extraction: ${parsed.confidence}${parsed.notes? ' — '+parsed.notes : ''}. Worth a quick check against the book.</div>`;
+    }
+    statusEl.innerHTML = note;
+    renderWorkspace(type, parsed);
+  }catch(err){
+    statusEl.innerHTML = `<div class="status error">${err.message}</div>`;
+  }
+}
+
+/* ---- Workspace: resolve ingredients, compute macros ---- */
+/* ---------------- Unit parsing & weight conversion ---------------- */
+const WEIGHT_UNIT_GRAMS = {
+  g:1, gram:1, grams:1, gr:1,
+  kg:1000, kilogram:1000, kilograms:1000,
+  oz:28.3495, ounce:28.3495, ounces:28.3495,
+  lb:453.592, lbs:453.592, pound:453.592, pounds:453.592
+};
+function isWeightUnit(u){ return !!u && WEIGHT_UNIT_GRAMS.hasOwnProperty(u.toLowerCase()); }
+function toGrams(amount, unit){ return amount * WEIGHT_UNIT_GRAMS[unit.toLowerCase()]; }
+
+const VOLUME_UNITS = {
+  tsp:1, tsps:1, teaspoon:1, teaspoons:1,
+  tbsp:3, tbsps:3, tablespoon:3, tablespoons:3,
+  cup:48, cups:48
+};
+function isVolumeUnit(u){ return !!u && VOLUME_UNITS.hasOwnProperty(u.toLowerCase()); }
+
+const COUNT_UNIT_WHITELIST = ['clove','cloves','slice','slices','piece','pieces','packet','packets','can','cans','scoop','scoops','stick','sticks','link','links','egg','eggs','bar','bars','patty','patties'];
+function isCountUnit(u){ return !!u && COUNT_UNIT_WHITELIST.includes(u.toLowerCase()); }
+
+function classifyUnit(u){
+  if(isWeightUnit(u)) return 'weight';
+  if(isVolumeUnit(u)) return 'volume';
+  if(isCountUnit(u)) return 'count';
+  return 'none';
+}
+function densityKey(name, basisUnit){ return name.toLowerCase().trim()+'|'+basisUnit.toLowerCase(); }
+function stripAmountUnit(text){
+  return text.replace(/^\s*(\d+\s+\d+\/\d+|\d+\/\d+|\d*\.?\d+)\s*[a-zA-Z%]*\.?\s*(of\s+)?/,'').trim();
+}
+
+function parseAmountUnit(text){
+  const m = text.match(/^\s*(\d+\s+\d+\/\d+|\d+\/\d+|\d*\.?\d+)\s*([a-zA-Z]+)?/);
+  if(!m) return {amount:null, unit:null};
+  const amtStr = m[1].trim();
+  let amount;
+  if(amtStr.includes('/')){
+    const parts = amtStr.split(' ');
+    if(parts.length===2){
+      const whole = parseFloat(parts[0]);
+      const [n,d] = parts[1].split('/').map(Number);
+      amount = whole + (n/d);
+    }else{
+      const [n,d] = amtStr.split('/').map(Number);
+      amount = n/d;
+    }
+  }else{
+    amount = parseFloat(amtStr);
+  }
+  const unit = (m[2]||'').toLowerCase().replace(/\.$/,'');
+  return {amount, unit};
+}
+
+/* ---------------- Claude vision (read a nutrition label photo) ---------------- */
+function fileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+async function callClaudeVision(base64Data, mediaType, prompt){
+  const apiKey = load(LS.apiKey, '');
+  const model = load(LS.model, 'claude-sonnet-5');
+  if(!apiKey) throw new Error('No API key set. Add one in Setup.');
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 500,
+      messages: [{
+        role:'user',
+        content:[
+          {type:'image', source:{type:'base64', media_type: mediaType, data: base64Data}},
+          {type:'text', text: prompt}
+        ]
+      }]
+    })
+  });
+  if(!resp.ok){
+    const errText = await resp.text();
+    throw new Error(`API error ${resp.status}: ${errText.slice(0,300)}`);
+  }
+  const data = await resp.json();
+  const textBlock = (data.content || []).find(c=>c.type==='text');
+  return textBlock ? textBlock.text : '';
+}
+
+const LABEL_PROMPT = `This is a photo of a nutrition facts label, possibly with the product name/brand visible too. Return ONLY a JSON object, no other text:
+{"name": "product name if visible, else your best guess of what the food is", "brand": "brand name if visible, else null", "servingGrams": <the serving size in GRAMS as a number - nutrition labels almost always show this even when the primary unit is cups/tbsp/slices, e.g. "2/3 cup (55g)" means servingGrams is 55; if truly no gram weight is shown, give your best estimate for that food's typical serving weight>, "calories": <calories per serving, a number>, "protein": <protein grams per serving, a number>}`;
+
+/* ---------------- Workspace / ingredient resolution ---------------- */
+function renderWorkspace(type, recipe){
+  const ws = document.getElementById(type+'-workspace');
+  const origServings = recipe.servings || 1;
+
+  ws.innerHTML = `
+    <div class="card">
+      <h2>${recipe.title}</h2>
+      ${recipe.sourceBook ? `<div class="muted">📖 ${recipe.sourceBook} — page ${recipe.sourcePage} (for the cooking directions)</div>` : ''}
+      <label>Original servings (as stated in book)</label>
+      <input type="number" id="${type}-origServings" value="${origServings}" min="1">
+      <label>Servings you want to make</label>
+      <input type="number" id="${type}-targetServings" value="7" min="1">
+
+      <hr class="sep">
+      <div id="${type}-ingList"></div>
+
+      <button class="btn" onclick="calculate('${type}')">Calculate</button>
+      <div id="${type}-results"></div>
+    </div>
+  `;
+
+  window['__recipe_'+type] = recipe;
+  window['__parsedUnits_'+type] = recipe.ingredients.map(ing => parseAmountUnit(ing.text));
+
+  const listEl = document.getElementById(type+'-ingList');
+  listEl.innerHTML = recipe.ingredients.map((ing,i)=> ingBlockHtml(type, i, ing)).join('');
+
+  // resolve grams for anything that was already linked from master list on load
+  recipe.ingredients.forEach((ing,i)=>{
+    const guessId = guessIngredientMatch(ing.text);
+    if(guessId) resolveGramsForRow(type, i);
+  });
+}
+
+function guessIngredientMatch(text){
+  const lower = text.toLowerCase();
+  const found = Object.entries(ingredients).find(([id,ing])=> lower.includes(ing.name.toLowerCase()));
+  return found ? found[0] : null;
+}
+
+function unitNote(type, i){
+  const pu = window['__parsedUnits_'+type][i];
+  if(!pu || pu.amount===null) return '<span class="muted">Could not read an amount from this line — enter grams manually below.</span>';
+  const cls = classifyUnit(pu.unit);
+  if(cls==='weight') return `<span class="muted">Recipe calls for ${pu.amount}${pu.unit} — grams calculated automatically once linked.</span>`;
+  if(cls==='volume') return `<span class="muted">Recipe measures this in ${pu.unit} — a one-time teaspoon weigh-in calibrates it, then it's automatic.</span>`;
+  if(cls==='count') return `<span class="muted">Recipe measures this in "${pu.unit}" — a one-time weigh-in calibrates it, then it's automatic.</span>`;
+  return '<span class="muted">Enter grams manually below (couldn\'t recognize a unit here).</span>';
+}
+
+function ingBlockHtml(type, i, ing){
+  const guessId = guessIngredientMatch(ing.text);
+  return `
+    <div class="ing-block" data-idx="${i}">
+      <div class="top-line">
+        <div class="orig-text">${ing.text}</div>
+        <span class="pill ${guessId?'':'unresolved'}" id="${type}-pill-${i}">${guessId? 'linked: '+ingredients[guessId].name : 'unresolved'}</span>
+      </div>
+      <div class="footnote" style="margin-top:4px;">${unitNote(type, i)}</div>
+
+      <div id="${type}-resolve-${i}" style="margin-top:8px;">
+        ${guessId ? '' : renderResolveChooserHtml(type, i)}
+      </div>
+
+      <div class="sub-grid" style="margin-top:8px;">
+        <div>
+          <label>Grams used in this recipe</label>
+          <input type="number" id="${type}-grams-${i}" placeholder="auto once linked, or weigh it out">
+          <div id="${type}-calib-${i}"></div>
+        </div>
+        <div>
+          <label>Already logged? Link it</label>
+          <select id="${type}-link-${i}" onchange="updatePill('${type}',${i})">
+            <option value="">-- choose --</option>
+            ${Object.entries(ingredients).map(([id,ing2])=>`<option value="${id}" ${id===guessId?'selected':''}>${ing2.name}${ing2.brand? ' ('+ing2.brand+')':''}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ---- Three ways to resolve an unlinked ingredient: generic (USDA), specific (photo), manual ---- */
+function renderResolveChooserHtml(type, i){
+  return `
+    <div class="top-actions">
+      <button class="btn secondary small" onclick="chooseGeneric('${type}',${i})">Generic ingredient</button>
+      <button class="btn secondary small" onclick="choosePhoto('${type}',${i})">Specific product (photo)</button>
+      <button class="btn secondary small" onclick="toggleNewIng('${type}',${i})">Enter manually</button>
+    </div>
+    <div id="${type}-genericArea-${i}"></div>
+    <div id="${type}-photoArea-${i}"></div>
+    <div id="${type}-newing-${i}" style="display:none;margin-top:8px;">
+      <div class="sub-grid">
+        <div><label>Name</label><input type="text" id="${type}-ni-name-${i}"></div>
+        <div><label>Brand</label><input type="text" id="${type}-ni-brand-${i}" placeholder="Great Value / name brand"></div>
+        <div><label>Label serving size (g)</label><input type="number" id="${type}-ni-serv-${i}"></div>
+        <div><label>Calories per serving</label><input type="number" id="${type}-ni-cal-${i}"></div>
+        <div><label>Protein per serving (g)</label><input type="number" id="${type}-ni-prot-${i}"></div>
+      </div>
+      <button class="btn small" style="margin-top:8px;" onclick="saveNewIng('${type}',${i})">Save to master list</button>
+    </div>
+  `;
+}
+
+function linkIngredientRow(type, i, id){
+  const select = document.getElementById(`${type}-link-${i}`);
+  let opt = Array.from(select.options).find(o=>o.value===id);
+  if(!opt){
+    opt = document.createElement('option');
+    opt.value = id;
+    opt.textContent = ingredients[id].name + (ingredients[id].brand? ' ('+ingredients[id].brand+')':'');
+    select.appendChild(opt);
+  }
+  select.value = id;
+  updatePill(type, i);
+}
+
+/* ---- Generic path: USDA FoodData Central lookup ---- */
+function chooseGeneric(type, i){
+  const ing = window['__recipe_'+type].ingredients[i];
+  const defaultName = stripAmountUnit(ing.text);
+  document.getElementById(`${type}-genericArea-${i}`).innerHTML = `
+    <label>Ingredient name to search</label>
+    <input type="text" id="${type}-gen-name-${i}" value="${defaultName.replace(/"/g,'&quot;')}">
+    <button class="btn small" style="margin-top:8px;" onclick="handleGenericLookup('${type}',${i})">Look up nutrition (USDA)</button>
+    <div id="${type}-genstatus-${i}"></div>
+    <div id="${type}-genconfirm-${i}"></div>
+  `;
+}
+
+async function handleGenericLookup(type, i){
+  const usdaKey = load(LS.usdaKey,'') || 'DEMO_KEY';
+  const query = document.getElementById(`${type}-gen-name-${i}`).value.trim();
+  if(!query) return;
+  const statusEl = document.getElementById(`${type}-genstatus-${i}`);
+  statusEl.innerHTML = '<div class="status info">Looking up on USDA FoodData Central...</div>';
+  try{
+    const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&pageSize=5&api_key=${encodeURIComponent(usdaKey)}`;
+    const resp = await fetch(url);
+    if(!resp.ok) throw new Error(`USDA API error ${resp.status}`);
+    const data = await resp.json();
+    const foods = data.foods || [];
+    const best = foods.find(f=> f.dataType==='Foundation' || f.dataType==='SR Legacy') || foods[0];
+    if(!best) throw new Error('No USDA match — try a simpler search term, or use Specific product / Enter manually instead.');
+    const getNutrient = (names) => {
+      const n = (best.foodNutrients||[]).find(fn => names.some(nm => (fn.nutrientName||'').toLowerCase().includes(nm)));
+      return n ? n.value : 0;
+    };
+    const cal = getNutrient(['energy']);
+    const prot = getNutrient(['protein']);
+    statusEl.innerHTML = '';
+    document.getElementById(`${type}-genconfirm-${i}`).innerHTML = `
+      <div class="ing-block" style="background:var(--accent-soft);">
+        <div class="muted">USDA match: ${best.description}</div>
+        <div class="sub-grid" style="margin-top:8px;">
+          <div><label>Name</label><input type="text" id="${type}-gc-name-${i}" value="${query.replace(/"/g,'&quot;')}"></div>
+          <div><label>Per 100g calories</label><input type="number" id="${type}-gc-cal-${i}" value="${cal}"></div>
+          <div><label>Per 100g protein (g)</label><input type="number" id="${type}-gc-prot-${i}" value="${prot}"></div>
+        </div>
+        <div class="footnote">USDA generic values, per 100g. Check it grabbed the right food — edit if not.</div>
+        <button class="btn small" style="margin-top:8px;" onclick="confirmGenericIngredient('${type}',${i})">Save & use</button>
+      </div>
+    `;
+  }catch(err){
+    statusEl.innerHTML = `<div class="status error">${err.message}</div>`;
+  }
+}
+
+function confirmGenericIngredient(type, i){
+  const name = document.getElementById(`${type}-gc-name-${i}`).value.trim();
+  const cal = parseFloat(document.getElementById(`${type}-gc-cal-${i}`).value);
+  const prot = parseFloat(document.getElementById(`${type}-gc-prot-${i}`).value);
+  if(!name || isNaN(cal) || isNaN(prot)){ alert('Fill in name, calories, and protein.'); return; }
+  const id = ingId(name+'-generic');
+  ingredients[id] = {name, brand:'Generic (USDA)', servingGrams:100, calories:cal, protein:prot};
+  save(LS.ingredients, ingredients);
+  renderMaster();
+  linkIngredientRow(type, i, id);
+}
+
+/* ---- Specific product path: photo label read via Claude vision ---- */
+function choosePhoto(type, i){
+  document.getElementById(`${type}-photoArea-${i}`).innerHTML = `
+    <label>Nutrition label photo</label>
+    <input type="file" accept="image/*" id="${type}-photo-${i}" onchange="handlePhotoUpload('${type}',${i})">
+    <div id="${type}-photostatus-${i}"></div>
+    <div id="${type}-photoconfirm-${i}"></div>
+  `;
+}
+
+async function handlePhotoUpload(type, i){
+  const fileInput = document.getElementById(`${type}-photo-${i}`);
+  const file = fileInput.files[0];
+  if(!file) return;
+  const statusEl = document.getElementById(`${type}-photostatus-${i}`);
+  statusEl.innerHTML = '<div class="status info">Reading label...</div>';
+  try{
+    const b64 = await fileToBase64(file);
+    const resp = await callClaudeVision(b64, file.type || 'image/jpeg', LABEL_PROMPT);
+    const parsed = extractJson(resp);
+    statusEl.innerHTML = '';
+    document.getElementById(`${type}-photoconfirm-${i}`).innerHTML = `
+      <div class="ing-block" style="background:var(--accent-soft);">
+        <div class="sub-grid">
+          <div><label>Name</label><input type="text" id="${type}-pc-name-${i}" value="${(parsed.name||'').replace(/"/g,'&quot;')}"></div>
+          <div><label>Brand</label><input type="text" id="${type}-pc-brand-${i}" value="${(parsed.brand||'').replace(/"/g,'&quot;')}"></div>
+          <div><label>Serving size (g)</label><input type="number" id="${type}-pc-serv-${i}" value="${parsed.servingGrams||''}"></div>
+          <div><label>Calories per serving</label><input type="number" id="${type}-pc-cal-${i}" value="${parsed.calories||''}"></div>
+          <div><label>Protein per serving (g)</label><input type="number" id="${type}-pc-prot-${i}" value="${parsed.protein||''}"></div>
+        </div>
+        <div class="footnote">Check these against the label — Claude can misread a photo. Fix anything wrong before saving.</div>
+        <button class="btn small" style="margin-top:8px;" onclick="confirmPhotoIngredient('${type}',${i})">Save & use</button>
+      </div>
+    `;
+  }catch(err){
+    statusEl.innerHTML = `<div class="status error">${err.message}</div>`;
+  }
+}
+
+function confirmPhotoIngredient(type, i){
+  const name = document.getElementById(`${type}-pc-name-${i}`).value.trim();
+  const brand = document.getElementById(`${type}-pc-brand-${i}`).value.trim();
+  const serv = parseFloat(document.getElementById(`${type}-pc-serv-${i}`).value);
+  const cal = parseFloat(document.getElementById(`${type}-pc-cal-${i}`).value);
+  const prot = parseFloat(document.getElementById(`${type}-pc-prot-${i}`).value);
+  if(!name || !serv || isNaN(cal) || isNaN(prot)){
+    alert('Fill in name, serving size, calories, and protein before saving.');
+    return;
+  }
+  const id = ingId(name + (brand?'-'+brand:''));
+  ingredients[id] = {name, brand, servingGrams: serv, calories: cal, protein: prot};
+  save(LS.ingredients, ingredients);
+  renderMaster();
+  linkIngredientRow(type, i, id);
+}
+
+function toggleNewIng(type, i){
+  const el = document.getElementById(`${type}-newing-${i}`);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function saveNewIng(type, i){
+  const name = document.getElementById(`${type}-ni-name-${i}`).value.trim();
+  const brand = document.getElementById(`${type}-ni-brand-${i}`).value.trim();
+  const serv = parseFloat(document.getElementById(`${type}-ni-serv-${i}`).value);
+  const cal = parseFloat(document.getElementById(`${type}-ni-cal-${i}`).value);
+  const prot = parseFloat(document.getElementById(`${type}-ni-prot-${i}`).value);
+  if(!name || !serv || isNaN(cal) || isNaN(prot)){
+    alert('Fill in name, serving size, calories, and protein.');
+    return;
+  }
+  const id = ingId(name + (brand?'-'+brand:''));
+  ingredients[id] = {name, brand, servingGrams: serv, calories: cal, protein: prot};
+  save(LS.ingredients, ingredients);
+  renderMaster();
+  linkIngredientRow(type, i, id);
+}
+
+/* ---- Grams resolution: weight = direct math, volume/count = one-time calibration ---- */
+function resolveGramsForRow(type, i){
+  const pu = window['__parsedUnits_'+type][i];
+  const id = document.getElementById(`${type}-link-${i}`).value;
+  const calibEl = document.getElementById(`${type}-calib-${i}`);
+  if(calibEl) calibEl.innerHTML = '';
+  if(!id || !ingredients[id] || !pu || pu.amount===null) return;
+
+  const name = ingredients[id].name;
+  const cls = classifyUnit(pu.unit);
+  const gramsField = document.getElementById(`${type}-grams-${i}`);
+
+  if(cls==='weight'){
+    if(gramsField) gramsField.value = toGrams(pu.amount, pu.unit).toFixed(1);
+    return;
+  }
+  if(cls==='volume'){
+    const key = densityKey(name, 'tsp');
+    if(densities[key]){
+      const tsp = pu.amount * VOLUME_UNITS[pu.unit.toLowerCase()];
+      if(gramsField) gramsField.value = (tsp * densities[key]).toFixed(1);
+    }else if(calibEl){
+      calibEl.innerHTML = renderCalibrationPromptHtml(type, i, name, 'tsp', '1 teaspoon');
+    }
+    return;
+  }
+  if(cls==='count'){
+    const unit = pu.unit.toLowerCase();
+    const key = densityKey(name, unit);
+    if(densities[key]){
+      if(gramsField) gramsField.value = (pu.amount * densities[key]).toFixed(1);
+    }else if(calibEl){
+      calibEl.innerHTML = renderCalibrationPromptHtml(type, i, name, unit, `1 ${unit}`);
+    }
+    return;
+  }
+  // cls === 'none': no recognized unit, leave for manual weigh-in
+}
+
+function renderCalibrationPromptHtml(type, i, name, basisUnit, label){
+  return `
+    <div class="status info" style="margin-top:6px;">
+      New unit for "${name}" — measure exactly ${label}, weigh it, and enter the grams:
+      <div class="row" style="margin-top:6px;">
+        <input type="number" id="${type}-calibval-${i}" placeholder="grams">
+        <button class="btn small" style="flex:0 0 auto;" onclick="saveCalibration('${type}',${i},'${name.replace(/'/g,"\\'")}','${basisUnit}')">Save</button>
+      </div>
+      <div class="footnote">Saved once — future recipes using ${label} of this won't ask again.</div>
+    </div>
+  `;
+}
+
+function saveCalibration(type, i, name, basisUnit){
+  const val = parseFloat(document.getElementById(`${type}-calibval-${i}`).value);
+  if(isNaN(val) || val<=0){ alert('Enter the weighed grams.'); return; }
+  densities[densityKey(name, basisUnit)] = val;
+  save(LS.densities, densities);
+  document.getElementById(`${type}-calib-${i}`).innerHTML = '';
+  resolveGramsForRow(type, i);
+}
+
+function updatePill(type, i){
+  const id = document.getElementById(`${type}-link-${i}`).value;
+  const pill = document.getElementById(`${type}-pill-${i}`);
+  if(id && ingredients[id]){
+    pill.textContent = 'linked: ' + ingredients[id].name;
+    pill.classList.remove('unresolved');
+    document.getElementById(`${type}-resolve-${i}`).innerHTML = '';
+    resolveGramsForRow(type, i);
+  }else{
+    pill.textContent = 'unresolved';
+    pill.classList.add('unresolved');
+    document.getElementById(`${type}-resolve-${i}`).innerHTML = renderResolveChooserHtml(type, i);
+  }
+}
+
+/* ---- Calculate ---- */
+function calculate(type){
+  const recipe = window['__recipe_'+type];
+  const origServings = parseFloat(document.getElementById(type+'-origServings').value) || 1;
+  const targetServings = parseFloat(document.getElementById(type+'-targetServings').value) || 1;
+  const scale = targetServings / origServings;
+
+  let totalCal = 0, totalProt = 0;
+  const lines = [];
+  const missing = [];
+  const groceryAdds = [];
+
+  recipe.ingredients.forEach((ing, i)=>{
+    const id = document.getElementById(`${type}-link-${i}`).value;
+    const grams = parseFloat(document.getElementById(`${type}-grams-${i}`).value);
+    if(!id || !ingredients[id] || isNaN(grams)){
+      missing.push(ing.text);
+      return;
+    }
+    const master = ingredients[id];
+    const calPerG = master.calories / master.servingGrams;
+    const protPerG = master.protein / master.servingGrams;
+    const cal = calPerG * grams;
+    const prot = protPerG * grams;
+    totalCal += cal;
+    totalProt += prot;
+
+    const scaledGrams = grams * scale;
+    lines.push(`${master.name}${master.brand? ' ('+master.brand+')':''} — ${Math.round(scaledGrams)}g (${Math.round(cal*scale)} cal, ${(prot*scale).toFixed(1)}g protein)`);
+    groceryAdds.push({id, grams: scaledGrams});
+  });
+
+  const resultsEl = document.getElementById(type+'-results');
+  if(missing.length){
+    resultsEl.innerHTML = `<div class="status error">Resolve and weigh these before calculating: ${missing.join(', ')}</div>`;
+    return;
+  }
+
+  const perServCal = totalCal / origServings;
+  const perServProt = totalProt / origServings;
+
+  const outputText = `${recipe.title}${recipe.sourceBook ? ` (${recipe.sourceBook}, p.${recipe.sourcePage})` : ''}
+Scaled to ${targetServings} servings (originally ${origServings})
+
+Per serving: ${Math.round(perServCal)} cal | ${perServProt.toFixed(1)}g protein
+
+Ingredients for ${targetServings} servings:
+${lines.join('\n')}`;
+
+  resultsEl.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat"><div class="n">${Math.round(perServCal)}</div><div class="l">cal / serving</div></div>
+      <div class="stat"><div class="n">${perServProt.toFixed(1)}g</div><div class="l">protein / serving</div></div>
+    </div>
+    <div class="result-box" id="${type}-outputText">${outputText}</div>
+    <div class="top-actions" style="margin-top:10px;">
+      <button class="btn secondary small" onclick="copyText('${type}-outputText')">Copy</button>
+      <button class="btn small" onclick="addToGrocery('${type}')">Add to grocery list</button>
+    </div>
+  `;
+  window['__grocery_adds_'+type] = groceryAdds;
+}
+
+function copyText(elId){
+  const text = document.getElementById(elId).innerText;
+  navigator.clipboard.writeText(text).then(()=>{
+    alert('Copied.');
+  }).catch(()=>{
+    alert('Could not copy — select and copy manually.');
+  });
+}
+
+/* ---- Grocery list ---- */
+function addToGrocery(type){
+  const adds = window['__grocery_adds_'+type];
+  if(!adds){ return; }
+  const state = mealState(type);
+  adds.forEach(a=>{
+    state.grocery[a.id] = (state.grocery[a.id] || 0) + a.grams;
+  });
+  save(LS.meals, meals);
+  renderGrocery(type);
+  renderCombinedGrocery();
+  alert('Added to grocery list.');
+}
+
+function renderGrocery(type){
+  const state = mealState(type);
+  const el = document.getElementById(type+'-grocery');
+  const entries = Object.entries(state.grocery);
+  if(!entries.length){
+    el.innerHTML = '<div class="muted">Nothing added yet.</div>';
+    return;
+  }
+  el.innerHTML = `<div id="${type}-groceryText">` + entries.map(([id,grams])=>{
+    const ing = ingredients[id];
+    const label = ing ? (ing.name + (ing.brand? ' ('+ing.brand+')':'')) : id;
+    return `<div class="grocery-row"><span>${label}</span><b>${Math.round(grams)}g</b></div>`;
+  }).join('') + `</div>`;
+}
+
+function copyGrocery(type){
+  const state = mealState(type);
+  const entries = Object.entries(state.grocery);
+  if(!entries.length){ alert('Grocery list is empty.'); return; }
+  const text = entries.map(([id,grams])=>{
+    const ing = ingredients[id];
+    const label = ing ? (ing.name + (ing.brand? ' ('+ing.brand+')':'')) : id;
+    return `${label} — ${Math.round(grams)}g`;
+  }).join('\n');
+  navigator.clipboard.writeText(text).then(()=>alert('Copied.')).catch(()=>alert('Could not copy.'));
+}
+
+function clearGrocery(type){
+  if(!confirm('Clear the grocery list for this section?')) return;
+  meals[type].grocery = {};
+  save(LS.meals, meals);
+  renderGrocery(type);
+  renderCombinedGrocery();
+}
+
+/* ---- Combined grocery tab (breakfast + dinner together) ---- */
+function combinedGroceryTotals(){
+  const totals = {};
+  ['breakfast','dinner'].forEach(type=>{
+    Object.entries(meals[type].grocery).forEach(([id, grams])=>{
+      totals[id] = (totals[id] || 0) + grams;
+    });
+  });
+  return totals;
+}
+function renderCombinedGrocery(){
+  const el = document.getElementById('combined-grocery');
+  const totals = combinedGroceryTotals();
+  const entries = Object.entries(totals);
+  if(!entries.length){
+    el.innerHTML = '<div class="muted">Nothing added yet. Add ingredients from the Breakfast or Dinner tabs after calculating a recipe.</div>';
+    return;
+  }
+  el.innerHTML = entries.map(([id,grams])=>{
+    const ing = ingredients[id];
+    const label = ing ? (ing.name + (ing.brand? ' ('+ing.brand+')':'')) : id;
+    return `<div class="grocery-row"><span>${label}</span><b>${Math.round(grams)}g</b></div>`;
+  }).join('');
+}
+function copyCombinedGrocery(){
+  const totals = combinedGroceryTotals();
+  const entries = Object.entries(totals);
+  if(!entries.length){ alert('Grocery list is empty.'); return; }
+  const text = entries.map(([id,grams])=>{
+    const ing = ingredients[id];
+    const label = ing ? (ing.name + (ing.brand? ' ('+ing.brand+')':'')) : id;
+    return `${label} — ${Math.round(grams)}g`;
+  }).join('\n');
+  navigator.clipboard.writeText(text).then(()=>alert('Copied.')).catch(()=>alert('Could not copy.'));
+}
+function clearCombinedGrocery(){
+  if(!confirm('Clear the entire grocery list (breakfast + dinner)?')) return;
+  meals.breakfast.grocery = {};
+  meals.dinner.grocery = {};
+  save(LS.meals, meals);
+  renderGrocery('breakfast');
+  renderGrocery('dinner');
+  renderCombinedGrocery();
+}
+</script>
+</body>
+</html>
